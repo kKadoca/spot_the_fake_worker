@@ -1,13 +1,13 @@
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
 // Load environment variables
-dotenv.config();
+dotenv.config()
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const ROOT_DIR = join(__dirname, '..', '..');
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const ROOT_DIR = join(__dirname, '..', '..')
 
 export const config = {
   // Unsplash
@@ -26,16 +26,22 @@ export const config = {
   iloveimg: {
     publicKey: process.env.ILOVEIMG_PUBLIC_KEY,
     secretKey: process.env.ILOVEIMG_SECRET_KEY,
-  },
 
-  // Google Drive folders
-  gdrive: {
-    folders: {
-      raw: process.env.GDRIVE_FOLDER_RAW,
-      toReplicate: process.env.GDRIVE_FOLDER_TO_REPLICATE,
-      ready: process.env.GDRIVE_FOLDER_READY,
+    // Default options for image processing
+    defaults: {
+      region: process.env.ILOVEIMG_REGION || 'eu', // Server region: eu, us, fr, de, pl
+      autoCleanup: true, // Auto-delete tasks after completion
+      compressionLevel: 'recommended', // Compression level: low, recommended, extreme
+      maintainRatio: false, // Maintain aspect ratio when resizing
+      resizeMode: 'pixels', // Resize mode: pixels or percentage
     },
-    serviceAccountPath: process.env.GOOGLE_SERVICE_ACCOUNT_PATH || './credentials/service-account.json',
+
+    // Advanced options
+    advanced: {
+      webhookUrl: process.env.ILOVEIMG_WEBHOOK_URL, // Optional webhook for async processing
+      fileEncryptionKey: process.env.ILOVEIMG_ENCRYPTION_KEY, // Optional file encryption
+      taskTimeout: 300000, // Task timeout in ms (5 minutes)
+    },
   },
 
   // Workflow settings
@@ -54,7 +60,7 @@ export const config = {
     temp: join(ROOT_DIR, 'temp'),
     credentials: join(ROOT_DIR, 'credentials'),
   },
-};
+}
 
 /**
  * Validate that all required environment variables are set
@@ -65,18 +71,15 @@ export function validateConfig() {
     ['OPENAI_API_KEY', config.openai.apiKey],
     ['ILOVEIMG_PUBLIC_KEY', config.iloveimg.publicKey],
     ['ILOVEIMG_SECRET_KEY', config.iloveimg.secretKey],
-    ['GDRIVE_FOLDER_RAW', config.gdrive.folders.raw],
-    ['GDRIVE_FOLDER_TO_REPLICATE', config.gdrive.folders.toReplicate],
-    ['GDRIVE_FOLDER_READY', config.gdrive.folders.ready],
-  ];
+  ]
 
-  const missing = required.filter(([name, value]) => !value).map(([name]) => name);
+  const missing = required.filter(([name, value]) => !value).map(([name]) => name)
 
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables:\n  - ${missing.join('\n  - ')}\n\nPlease check your .env file.`);
+    throw new Error(`Missing required environment variables:\n  - ${missing.join('\n  - ')}\n\nPlease check your .env file.`)
   }
 
-  return true;
+  return true
 }
 
-export default config;
+export default config

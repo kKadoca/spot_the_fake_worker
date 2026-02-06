@@ -1,16 +1,16 @@
-import ILovePDFApi from '@ilovepdf/ilovepdf-nodejs';
-import ILovePDFFile from '@ilovepdf/ilovepdf-nodejs/ILovePDFFile.js';
-import { writeFile, readFile } from 'fs/promises';
-import { join, dirname } from 'path';
-import config from '../config/index.js';
-import { logger, retryWithBackoff } from '../utils/helpers.js';
+import ILovePDFApi from '@ilovepdf/ilovepdf-nodejs'
+import ILovePDFFile from '@ilovepdf/ilovepdf-nodejs/ILovePDFFile.js'
+import { writeFile, readFile } from 'fs/promises'
+import { join, dirname } from 'path'
+import config from '../config/index.js'
+import { logger, retryWithBackoff } from '../utils/helpers.js'
 
 // Initialize iLoveIMG instance
 // Note: iLoveAPI works for both PDF and images
 const iloveimg = new ILovePDFApi(
   config.iloveimg.publicKey,
   config.iloveimg.secretKey
-);
+)
 
 /**
  * Resize an image using iLoveIMG API
@@ -24,12 +24,12 @@ const iloveimg = new ILovePDFApi(
 export async function resizeImage(inputPath, outputPath, width = config.workflow.resize.width, height = config.workflow.resize.height) {
   return retryWithBackoff(async () => {
     // Create resize task
-    const task = iloveimg.newTask('resizeimage');
-    await task.start();
+    const task = iloveimg.newTask('resizeimage')
+    await task.start()
 
     // Add file
-    const file = new ILovePDFFile(inputPath);
-    await task.addFile(file);
+    const file = new ILovePDFFile(inputPath)
+    await task.addFile(file)
 
     // Process with resize settings
     await task.process({
@@ -37,14 +37,14 @@ export async function resizeImage(inputPath, outputPath, width = config.workflow
       pixels_width: width,
       pixels_height: height,
       maintain_ratio: true,
-    });
+    })
 
     // Download result
-    const data = await task.download();
-    await writeFile(outputPath, data);
+    const data = await task.download()
+    await writeFile(outputPath, data)
 
-    return outputPath;
-  });
+    return outputPath
+  })
 }
 
 /**
@@ -57,22 +57,22 @@ export async function resizeImage(inputPath, outputPath, width = config.workflow
 export async function compressImage(inputPath, outputPath) {
   return retryWithBackoff(async () => {
     // Create compress task
-    const task = iloveimg.newTask('compressimage');
-    await task.start();
+    const task = iloveimg.newTask('compressimage')
+    await task.start()
 
     // Add file
-    const file = new ILovePDFFile(inputPath);
-    await task.addFile(file);
+    const file = new ILovePDFFile(inputPath)
+    await task.addFile(file)
 
     // Process
-    await task.process();
+    await task.process()
 
     // Download result
-    const data = await task.download();
-    await writeFile(outputPath, data);
+    const data = await task.download()
+    await writeFile(outputPath, data)
 
-    return outputPath;
-  });
+    return outputPath
+  })
 }
 
 /**
@@ -87,29 +87,29 @@ export async function processImage(inputPath, outputPath, options = {}) {
   const {
     width = config.workflow.resize.width,
     height = config.workflow.resize.height,
-  } = options;
+  } = options
 
-  const tempResizedPath = outputPath.replace('.jpeg', '_resized.jpeg');
+  const tempResizedPath = outputPath.replace('.jpeg', '_resized.jpeg')
 
   try {
     // Step 1: Resize
-    logger.info(`    Resizing to ${width}x${height}...`);
-    await resizeImage(inputPath, tempResizedPath, width, height);
+    logger.info(`    Resizing to ${width}x${height}...`)
+    await resizeImage(inputPath, tempResizedPath, width, height)
 
     // Step 2: Compress
-    logger.info(`    Compressing...`);
-    await compressImage(tempResizedPath, outputPath);
+    logger.info(`    Compressing...`)
+    await compressImage(tempResizedPath, outputPath)
 
     // Clean up temp file
-    const { unlink } = await import('fs/promises');
-    await unlink(tempResizedPath).catch(() => {});
+    const { unlink } = await import('fs/promises')
+    await unlink(tempResizedPath).catch(() => { })
 
-    return outputPath;
+    return outputPath
   } catch (error) {
     // Clean up temp file on error
-    const { unlink } = await import('fs/promises');
-    await unlink(tempResizedPath).catch(() => {});
-    throw error;
+    const { unlink } = await import('fs/promises')
+    await unlink(tempResizedPath).catch(() => { })
+    throw error
   }
 }
 
@@ -120,22 +120,22 @@ export async function processImage(inputPath, outputPath, options = {}) {
  * @returns {Promise<Array>} Array of processed image paths
  */
 export async function processImages(images) {
-  logger.info(`Processing ${images.length} images with iLoveIMG...`);
+  logger.info(`Processing ${images.length} images with iLoveIMG...`)
 
-  const results = [];
+  const results = []
 
   for (let i = 0; i < images.length; i++) {
-    const image = images[i];
-    logger.info(`  Processing image ${i + 1}/${images.length}: ${image.id}`);
+    const image = images[i]
+    logger.info(`  Processing image ${i + 1}/${images.length}: ${image.id}`)
 
-    const outputPath = await processImage(image.inputPath, image.outputPath);
+    const outputPath = await processImage(image.inputPath, image.outputPath)
     results.push({
       ...image,
       processedPath: outputPath,
-    });
+    })
   }
 
-  return results;
+  return results
 }
 
 export default {
@@ -143,4 +143,4 @@ export default {
   compressImage,
   processImage,
   processImages,
-};
+}

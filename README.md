@@ -4,24 +4,24 @@ Fully automated workflow for generating "Spot the Fake" image pairs. Fetches rea
 
 ## 📋 What It Does
 
-1. **Fetch** → Downloads horizontal nature/landscape images from Unsplash (no people)
-2. **Store** → Saves originals to Google Drive `Raw` folder
-3. **Process** → Resizes (1920×1080) and compresses via iLoveIMG API
-4. **Distribute** → Uploads processed originals to `To_Replicate` and `Ready` folders
+1. **Fetch** → Downloads horizontal nature/landscape images from Unsplash (none or few people)
+2. **Store** → Saves originals to Google Drive `raw` folder
+3. **Process** → Resizes (1280×720) and compresses via iLoveIMG API
+4. **Distribute** → Uploads processed originals to `to_replicate` and `ready` folders 
 5. **Generate** → Creates AI fakes using OpenAI (DALL-E 3) with subtle modifications
 6. **Process** → Resizes and compresses the fakes
-7. **Deliver** → Uploads fakes to `Ready` folder as `fake_[id].jpeg`
+7. **Deliver** → Uploads fakes to `ready` folder as `fake_[id].jpeg`
 
 ### Output Structure
 
 ```
 📁 Google Drive
-├── 📁 Raw/                    # Unprocessed Unsplash images
-├── 📁 To_Replicate/           # Processed originals (AI reference)
-│   └── original_20240215_a1b2c3_001.jpeg
+├── 📁 raw/                    # Unprocessed Unsplash images
+├── 📁 to_replicate/           # Processed originals (AI reference)
+│   └── original_202602_001.jpeg
 └── 📁 Ready/                  # Final game-ready pairs
-    ├── original_20240215_a1b2c3_001.jpeg
-    └── fake_20240215_a1b2c3_001.jpeg
+    ├── original_202602_001.jpeg
+    └── fake_202602_001.jpeg
 ```
 
 ## 🚀 Quick Start
@@ -84,8 +84,8 @@ All settings are in `.env`:
 | `GDRIVE_FOLDER_TO_REPLICATE` | Folder ID for AI reference images |
 | `GDRIVE_FOLDER_READY` | Folder ID for final game-ready pairs |
 | `BATCH_SIZE` | Images per run (default: 5) |
-| `RESIZE_WIDTH` | Target width in pixels (default: 1920) |
-| `RESIZE_HEIGHT` | Target height in pixels (default: 1080) |
+| `RESIZE_WIDTH` | Target width in pixels (default: 1280) |
+| `RESIZE_HEIGHT` | Target height in pixels (default: 720) |
 
 ### Getting Folder IDs
 

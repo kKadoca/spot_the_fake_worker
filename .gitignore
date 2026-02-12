@@ -71,6 +71,7 @@ out/
 .fusebox/
 .dynamodb/
 .tern-port
+temp/
 
 # Testing
 coverage/

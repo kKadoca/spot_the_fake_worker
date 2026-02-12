@@ -1,17 +1,17 @@
-import { mkdir, rm, readdir, copyFile } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import config from '../config/index.js';
+import { mkdir, rm, readdir, copyFile } from "fs/promises";
+import { existsSync } from "fs";
+import { join } from "path";
+import { v4 as uuidv4 } from "uuid";
+import config from "../config/index.js";
 
 /**
  * Generate a unique ID for image pairs
  * Format: timestamp_shortUuid (e.g., "20240215_a1b2c3")
  */
 export function generateBatchId() {
-  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  // const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const shortUuid = uuidv4().slice(0, 6);
-  return `${timestamp}_${shortUuid}`;
+  return `${shortUuid}`;
 }
 
 /**
@@ -21,8 +21,9 @@ export function generateBatchId() {
  * @returns {string[]} Array of IDs like ["20240215_a1b2c3_001", "20240215_a1b2c3_002", ...]
  */
 export function generateSequentialIds(count, batchId = generateBatchId()) {
-  return Array.from({ length: count }, (_, i) => 
-    `${batchId}_${String(i + 1).padStart(3, '0')}`
+  return Array.from(
+    { length: count },
+    (_, i) => `${batchId}_${String(i + 1).padStart(3, "0")}`,
   );
 }
 
@@ -36,8 +37,8 @@ export async function ensureTempDir() {
   // Only clean up temporary processing subdirectories, not storage directories
   if (existsSync(tempDir)) {
     const subdirs = await readdir(tempDir);
-    const tempSubdirs = subdirs.filter(dir =>
-      !['raw', 'to_replicate', 'ready'].includes(dir)
+    const tempSubdirs = subdirs.filter(
+      dir => !["raw", "to_replicate", "ready"].includes(dir),
     );
 
     for (const subdir of tempSubdirs) {
@@ -56,11 +57,7 @@ export async function ensureTempDir() {
  * These persist between runs and don't get cleaned up
  */
 export async function ensureStorageDirs() {
-  const dirs = [
-    config.paths.raw,
-    config.paths.toReplicate,
-    config.paths.ready,
-  ];
+  const dirs = [config.paths.raw, config.paths.toReplicate, config.paths.ready];
 
   for (const dir of dirs) {
     if (!existsSync(dir)) {
@@ -89,7 +86,7 @@ export async function createTempSubdir(name) {
  */
 export async function cleanupTemp() {
   const tempDir = config.paths.temp;
-  
+
   if (existsSync(tempDir)) {
     await rm(tempDir, { recursive: true });
   }
@@ -111,21 +108,24 @@ export function sleep(ms) {
  */
 export async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
   let lastError;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
+      console.log(error.message);
       lastError = error;
-      
+
       if (attempt < maxRetries) {
         const delay = baseDelay * Math.pow(2, attempt);
-        console.log(`  ⚠️  Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+        console.log(
+          `  ⚠️  Attempt ${attempt + 1} failed, retrying in ${delay}ms...`,
+        );
         await sleep(delay);
       }
     }
   }
-  
+
   throw lastError;
 }
 
@@ -133,13 +133,13 @@ export async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
  * Format bytes to human readable string
  */
 export function formatBytes(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  
+  if (bytes === 0) return "0 Bytes";
+
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 /**
@@ -151,7 +151,7 @@ export function formatBytes(bytes) {
 export async function copyToStorage(sourcePath, destDir, filename) {
   const destPath = join(destDir, filename);
   await copyFile(sourcePath, destPath);
-  logger.info(`  Saved to ${destDir.split('/').pop()}: ${filename}`);
+  logger.info(`  Saved to ${destDir.split("/").pop()}: ${filename}`);
   return destPath;
 }
 
@@ -159,9 +159,10 @@ export async function copyToStorage(sourcePath, destDir, filename) {
  * Logger with timestamp
  */
 export const logger = {
-  info: (msg) => console.log(`[${new Date().toISOString()}] ℹ️  ${msg}`),
-  success: (msg) => console.log(`[${new Date().toISOString()}] ✅ ${msg}`),
-  warn: (msg) => console.log(`[${new Date().toISOString()}] ⚠️  ${msg}`),
-  error: (msg) => console.error(`[${new Date().toISOString()}] ❌ ${msg}`),
-  step: (step, msg) => console.log(`[${new Date().toISOString()}] [Step ${step}] ${msg}`),
+  info: msg => console.log(`[${new Date().toISOString()}] ℹ️  ${msg}`),
+  success: msg => console.log(`[${new Date().toISOString()}] ✅ ${msg}`),
+  warn: msg => console.log(`[${new Date().toISOString()}] ⚠️  ${msg}`),
+  error: msg => console.error(`[${new Date().toISOString()}] ❌ ${msg}`),
+  step: (step, msg) =>
+    console.log(`[${new Date().toISOString()}] [Step ${step}] ${msg}`),
 };

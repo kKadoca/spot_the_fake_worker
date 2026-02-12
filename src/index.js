@@ -6,10 +6,10 @@
  * This script orchestrates the full workflow:
  * 1. Fetch nature images from Unsplash
  * 2. Save to local raw folder
- * 3. Resize + Compress via iLoveIMG
+ * 3. Resize + Compress via Sharp
  * 4. Save to local to_replicate and ready folders
- * 5. Generate fake images with OpenAI
- * 6. Process fakes via iLoveIMG
+ * 5. Generate fake images with Hugging Face (Stable Diffusion)
+ * 6. Process fakes via Sharp
  * 7. Save fakes to local ready folder
  */
 
@@ -17,7 +17,7 @@ import { config, validateConfig } from './config/index.js'
 import unsplash from './services/unsplash.js'
 // import gdrive from './services/gdrive.js' // No longer needed - using local storage
 import iloveimg from './services/iloveimg.js'
-import openai from './services/openai.js'
+import huggingface from './services/huggingface.js'
 import {
   generateBatchId,
   generateSequentialIds,
@@ -161,7 +161,7 @@ async function stepGenerate(originals) {
   const fakesProcessedDir = await createTempSubdir('fakes_processed')
 
   // Generate fakes
-  const fakes = await openai.generateFakeImages(originals, fakesRawDir)
+  const fakes = await huggingface.generateFakeImages(originals, fakesRawDir)
 
   // Filter successful generations
   const successfulFakes = fakes.filter(f => f.success)

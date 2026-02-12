@@ -1,25 +1,25 @@
 # 🎮 Spot the Fake - Automated Pipeline
 
-Fully automated workflow for generating "Spot the Fake" image pairs. Fetches real nature photos from Unsplash, generates AI-modified versions with OpenAI, and organizes everything in Google Drive.
+Fully automated workflow for generating "Spot the Fake" image pairs. Fetches real nature photos from Unsplash, generates AI-modified versions with Hugging Face (Stable Diffusion), and organizes everything locally.
 
 ## 📋 What It Does
 
 1. **Fetch** → Downloads horizontal nature/landscape images from Unsplash (none or few people)
-2. **Store** → Saves originals to Google Drive `raw` folder
-3. **Process** → Resizes (1280×720) and compresses via iLoveIMG API
-4. **Distribute** → Uploads processed originals to `to_replicate` and `ready` folders 
-5. **Generate** → Creates AI fakes using OpenAI (DALL-E 3) with subtle modifications
-6. **Process** → Resizes and compresses the fakes
-7. **Deliver** → Uploads fakes to `ready` folder as `fake_[id].jpeg`
+2. **Store** → Saves originals to local `raw` folder
+3. **Process** → Resizes and compresses using Sharp (fast local processing)
+4. **Distribute** → Copies processed originals to `to_replicate` and `ready` folders
+5. **Generate** → Creates AI fakes using Hugging Face Stable Diffusion (FREE!)
+6. **Process** → Resizes and compresses the fakes using Sharp
+7. **Deliver** → Saves fakes to `ready` folder as `fake_[id].jpeg`
 
 ### Output Structure
 
 ```
-📁 Google Drive
+📁 temp/                       # Local temporary storage
 ├── 📁 raw/                    # Unprocessed Unsplash images
 ├── 📁 to_replicate/           # Processed originals (AI reference)
 │   └── original_202602_001.jpeg
-└── 📁 Ready/                  # Final game-ready pairs
+└── 📁 ready/                  # Final game-ready pairs
     ├── original_202602_001.jpeg
     └── fake_202602_001.jpeg
 ```
@@ -44,17 +44,7 @@ notepad .env  # Windows
 # or: code .env  # VS Code
 ```
 
-### 3. Set Up Google Service Account
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or select existing)
-3. Enable the **Google Drive API**
-4. Create a **Service Account** (IAM & Admin → Service Accounts)
-5. Create a JSON key and download it
-6. Save as `credentials/service-account.json`
-7. **Share your Drive folders** with the service account email
-
-### 4. Run
+### 3. Run
 
 ```bash
 # Full pipeline
@@ -77,23 +67,11 @@ All settings are in `.env`:
 | Variable | Description |
 |----------|-------------|
 | `UNSPLASH_ACCESS_KEY` | [Unsplash API](https://unsplash.com/developers) access key |
-| `OPENAI_API_KEY` | [OpenAI API](https://platform.openai.com/api-keys) key |
-| `ILOVEIMG_PUBLIC_KEY` | [iLoveAPI](https://www.iloveapi.com/) public key |
-| `ILOVEIMG_SECRET_KEY` | iLoveAPI secret key |
-| `GDRIVE_FOLDER_RAW` | Google Drive folder ID for raw images |
-| `GDRIVE_FOLDER_TO_REPLICATE` | Folder ID for AI reference images |
-| `GDRIVE_FOLDER_READY` | Folder ID for final game-ready pairs |
-| `BATCH_SIZE` | Images per run (default: 5) |
+| `HUGGINGFACE_API_KEY` | [Hugging Face API](https://huggingface.co/settings/tokens) token (FREE!) |
+| `HUGGINGFACE_MODEL` | Model to use (default: `stabilityai/stable-diffusion-xl-base-1.0`) |
+| `BATCH_SIZE` | Images per run (default: 2) |
 | `RESIZE_WIDTH` | Target width in pixels (default: 1280) |
 | `RESIZE_HEIGHT` | Target height in pixels (default: 720) |
-
-### Getting Folder IDs
-
-From a Google Drive folder URL:
-```
-https://drive.google.com/drive/folders/1xL5FVoo9rrxXaxoKXfcjcqBPTgK1QbJj
-                                       └─────────── This is the ID ───────────┘
-```
 
 ## 🔑 API Setup Guides
 
@@ -104,27 +82,78 @@ https://drive.google.com/drive/folders/1xL5FVoo9rrxXaxoKXfcjcqBPTgK1QbJj
 3. Copy your **Access Key** and **Secret Key**
 4. Free tier: 50 requests/hour
 
-### OpenAI
+### Hugging Face (FREE Image Generation!)
 
-1. Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-2. Create a new API key
-3. Ensure you have access to GPT-4o and DALL-E 3
-4. Note: Image generation costs ~$0.04-0.08 per image
+1. Go to [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+2. Click **"New token"**
+3. Give it a name (e.g., "spot-the-fake")
+4. Select **"Read"** permission (default)
+5. Click **"Generate token"**
+6. Copy the token (starts with `hf_...`)
+7. **Completely FREE** - No credit card required!
+8. Free tier: Generous limits for personal projects (a few hundred requests/hour)
 
-### iLoveIMG
+## About Sharp
 
-1. Go to [iloveapi.com](https://www.iloveapi.com/)
-2. Sign up and create a project
-3. Copy your **Public Key** and **Secret Key**
-4. Free tier: 250 files/month
+This project uses [Sharp](https://sharp.pixelplumbing.com/) for high-performance image processing. Sharp is:
 
-### Google Drive
+- **Fast** - Uses libvips library, 4-5x faster than ImageMagick or GraphicsMagick
+- **Local** - No API keys needed, processes images on your machine
+- **Reliable** - Battle-tested in production environments worldwide
+- **Memory efficient** - Streams images without loading entire files into memory
+- **Feature-rich** - Supports resize, crop, rotate, compress, watermark, and more
 
-1. [Create a Google Cloud project](https://console.cloud.google.com/projectcreate)
-2. [Enable Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com)
-3. [Create Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts/create)
-4. Create JSON key → Download → Save as `credentials/service-account.json`
-5. Share your Drive folders with the service account email (looks like: `name@project.iam.gserviceaccount.com`)
+### Key Features Used
+
+- **Resize**: Converts images to exact dimensions (1280×720) with smart fitting
+- **Compress**: JPEG quality optimization (low: 90, recommended: 85, extreme: 70)
+- **Format conversion**: Handles JPEG, PNG, WebP, AVIF, TIFF
+- **Metadata preservation**: Maintains EXIF data when needed
+
+### Documentation
+
+- **Official docs**: [sharp.pixelplumbing.com](https://sharp.pixelplumbing.com/)
+- **GitHub**: [github.com/lovell/sharp](https://github.com/lovell/sharp)
+- **API Reference**: [sharp.pixelplumbing.com/api-constructor](https://sharp.pixelplumbing.com/api-constructor)
+
+## 🤖 About Hugging Face & Stable Diffusion
+
+This project uses [Hugging Face](https://huggingface.co/) Inference API with **Stable Diffusion** for AI image generation - completely **FREE**!
+
+### Why Hugging Face?
+
+- **💯 100% Free** - No credit card required, generous free tier
+- **🚀 Fast** - Runs on Hugging Face's GPU infrastructure
+- **🎨 High Quality** - Uses Stable Diffusion XL for photorealistic results
+- **🔓 No Limits** - Perfect for low-volume usage (1-20 images/day)
+- **🌍 Open Source** - Built on open-source AI models
+
+### How It Works
+
+1. **Text-to-Image Generation**: Since we're using the free tier, we generate new nature scenes using text prompts
+2. **Scene Variety**: The script cycles through different scene types (forest, mountain, beach, lake, sunset, desert)
+3. **Photorealistic Output**: Stable Diffusion XL creates high-quality, realistic images
+4. **Post-Processing**: Sharp resizes and optimizes the generated images
+
+### Models Available
+
+The default model is `stabilityai/stable-diffusion-xl-base-1.0`, but you can use others:
+
+- **Stable Diffusion XL** (default): Best quality, photorealistic
+- **Stable Diffusion v1-5**: Faster, lighter weight
+- Check [Hugging Face Models](https://huggingface.co/models?pipeline_tag=text-to-image) for more options
+
+### Rate Limits
+
+- **Free tier**: A few hundred requests per hour
+- **Perfect for**: 1-20 images per day (your use case!)
+- **No monthly cap**: Unlike paid APIs, you won't run out of credits
+
+### Documentation
+
+- **Hugging Face Hub**: [huggingface.co](https://huggingface.co/)
+- **Inference API Docs**: [huggingface.co/docs/api-inference](https://huggingface.co/docs/api-inference)
+- **Stable Diffusion**: [huggingface.co/stabilityai/stable-diffusion-xl-base-1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)
 
 ## 📁 Project Structure
 
@@ -136,12 +165,10 @@ spot-the-fake_auto/
 │   │   └── index.js          # Configuration loader
 │   ├── services/
 │   │   ├── unsplash.js       # Unsplash API integration
-│   │   ├── gdrive.js         # Google Drive operations
-│   │   ├── iloveimg.js       # Image processing
-│   │   └── openai.js         # AI fake generation
+│   │   ├── iloveimg.js       # Image processing (Sharp)
+│   │   └── huggingface.js    # AI fake generation (Stable Diffusion)
 │   └── utils/
 │       └── helpers.js        # Utility functions
-├── credentials/              # (gitignored) Service account keys
 ├── temp/                     # (gitignored) Temporary files
 ├── .env.example              # Environment template
 ├── .env                      # (gitignored) Your credentials
@@ -150,23 +177,37 @@ spot-the-fake_auto/
 └── README.md
 ```
 
-## 🎯 The AI Prompt
+## 🎯 How Image Generation Works
 
-The fake generation uses this carefully crafted prompt:
+Since we're using Stable Diffusion (text-to-image), the script generates new nature scenes that look realistic but are clearly AI-generated:
 
-> Create a pixel-perfect, 16:9 replica of the reference image. Match the original framing, composition, perspective, and proportions exactly. Precisely mimic the lighting direction, intensity, and color temperature. Reproduce all visible camera characteristics (lens distortion, depth of field, exposure). Preserve all micro-textures: skin pores, fabric weave, wood grain, natural noise, scratches, reflections, and imperfections. No added elements, stylization, illustration, CGI, text, watermarks, smoothing, or digital artifacts. **Remember, this is for a game where the player needs to guess which image is real and which is AI, so just make minor changes.**
+**Scene Types** (rotates through variety):
+- Forest landscapes with trees and foliage
+- Mountain scenes with peaks and valleys
+- Beach scenes with ocean and sand
+- Lake views with reflections
+- Sunset/golden hour landscapes
+- Desert environments
+- General natural landscapes
 
-This produces images that are very similar to the originals but with subtle AI-generated differences.
+**Generation Parameters**:
+- **Size**: 1024×576 (16:9 aspect ratio)
+- **Quality**: 50 inference steps for photorealism
+- **Guidance**: 7.5 scale for prompt adherence
+- **Negative prompt**: Filters out cartoons, illustrations, CGI artifacts
 
 ## 🔧 Customization
 
-### Change the AI prompt
+### Change the AI generation
 
-Edit `src/services/openai.js` and modify the `FAKE_GENERATION_PROMPT` constant.
+Edit `src/services/huggingface.js` and modify:
+- `FAKE_GENERATION_PROMPT`: The main prompt for image generation
+- `scenePrompts`: The different scene types (forest, mountain, beach, etc.)
+- Or set `HUGGINGFACE_MODEL` in `.env` to use a different Stable Diffusion model
 
 ### Adjust image processing
 
-Edit `.env` to change `RESIZE_WIDTH`, `RESIZE_HEIGHT`, or modify `src/services/iloveimg.js` for more control.
+Edit `.env` to change `RESIZE_WIDTH`, `RESIZE_HEIGHT`, or modify `src/services/iloveimg.js` (which now uses Sharp) for more control over quality, format, and processing options.
 
 ### Add new image sources
 
@@ -177,14 +218,17 @@ Create a new service in `src/services/` following the pattern of `unsplash.js`.
 ### "Missing required environment variables"
 → Make sure you've copied `.env.example` to `.env` and filled in all values
 
-### "Google Drive upload failed"
-→ Check that the service account email has been shared with your folders (Editor access)
+### "Hugging Face API error 429 (rate limit)"
+→ The free tier has rate limits. Wait a few minutes and try again, or reduce batch size
 
-### "DALL-E rate limit exceeded"
-→ The script has built-in retry logic, but you may need to wait or reduce batch size
+### "Hugging Face API error 401 (unauthorized)"
+→ Check your `HUGGINGFACE_API_KEY` in `.env` is correct and starts with `hf_`
 
-### "iLoveIMG task failed"
-→ Check your API quota at iloveapi.com dashboard
+### "Sharp processing failed"
+→ Ensure you have enough disk space and the input images are valid JPEG/PNG files
+
+### "Model loading error" from Hugging Face
+→ The model might be loading (cold start). Wait 30-60 seconds and try again
 
 ## 📄 License
 

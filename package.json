@@ -1,7 +1,7 @@
 {
   "name": "spot-the-fake-auto",
   "version": "1.0.0",
-  "description": "Automated workflow for generating 'Spot the Fake' image pairs",
+  "description": "Automated workflow for generating 'Spot the Fake' image pairs using Unsplash, Hugging Face (Stable Diffusion), and Sharp",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -15,17 +15,17 @@
     "automation",
     "images",
     "unsplash",
-    "openai",
-    "google-drive"
+    "huggingface",
+    "stable-diffusion",
+    "sharp"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@ilovepdf/ilovepdf-nodejs": "*",
+    "@huggingface/inference": "^4.13.12",
     "axios": "^1.6.7",
     "dotenv": "^16.4.1",
-    "googleapis": "^131.0.0",
-    "openai": "^4.28.0",
+    "sharp": "^0.34.5",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

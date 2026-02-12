@@ -17,10 +17,9 @@ export const config = {
     baseUrl: "https://api.unsplash.com",
   },
 
-  // Hugging Face
-  huggingface: {
-    apiKey: process.env.HUGGINGFACE_API_KEY,
-    model: process.env.HUGGINGFACE_MODEL,
+  // Replicate
+  replicate: {
+    apiKey: process.env.REPLICATE_API_KEY,
   },
 
   // Workflow settings
@@ -50,7 +49,7 @@ export const config = {
 export function validateConfig() {
   const required = [
     ["UNSPLASH_ACCESS_KEY", config.unsplash.accessKey],
-    ["HUGGINGFACE_API_KEY", config.huggingface.apiKey],
+    ["REPLICATE_API_KEY", config.replicate.apiKey],
   ];
 
   const missing = required

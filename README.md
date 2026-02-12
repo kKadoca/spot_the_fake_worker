@@ -1,6 +1,6 @@
 # 🎮 Spot the Fake - Automated Pipeline
 
-Fully automated workflow for generating "Spot the Fake" image pairs. Fetches real nature photos from Unsplash, generates AI-modified versions with Hugging Face (Stable Diffusion), and organizes everything locally.
+Fully automated workflow for generating "Spot the Fake" image pairs. Fetches real nature photos from Unsplash, generates AI-modified versions with Replicate (Stable Diffusion img2img), and organizes everything locally.
 
 ## 📋 What It Does
 
@@ -8,7 +8,7 @@ Fully automated workflow for generating "Spot the Fake" image pairs. Fetches rea
 2. **Store** → Saves originals to local `raw` folder
 3. **Process** → Resizes and compresses using Sharp (fast local processing)
 4. **Distribute** → Copies processed originals to `to_replicate` and `ready` folders
-5. **Generate** → Creates AI fakes using Hugging Face Stable Diffusion (FREE!)
+5. **Generate** → Creates AI fakes using Replicate Stable Diffusion img2img (uses original as reference!)
 6. **Process** → Resizes and compresses the fakes using Sharp
 7. **Deliver** → Saves fakes to `ready` folder as `fake_[id].jpeg`
 
@@ -67,8 +67,7 @@ All settings are in `.env`:
 | Variable | Description |
 |----------|-------------|
 | `UNSPLASH_ACCESS_KEY` | [Unsplash API](https://unsplash.com/developers) access key |
-| `HUGGINGFACE_API_KEY` | [Hugging Face API](https://huggingface.co/settings/tokens) token (FREE!) |
-| `HUGGINGFACE_MODEL` | Model to use (default: `stabilityai/stable-diffusion-xl-base-1.0`) |
+| `REPLICATE_API_KEY` | [Replicate API](https://replicate.com/account/api-tokens) token |
 | `BATCH_SIZE` | Images per run (default: 2) |
 | `RESIZE_WIDTH` | Target width in pixels (default: 1280) |
 | `RESIZE_HEIGHT` | Target height in pixels (default: 720) |
@@ -82,16 +81,15 @@ All settings are in `.env`:
 3. Copy your **Access Key** and **Secret Key**
 4. Free tier: 50 requests/hour
 
-### Hugging Face (FREE Image Generation!)
+### Replicate (Affordable img2img Generation!)
 
-1. Go to [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-2. Click **"New token"**
-3. Give it a name (e.g., "spot-the-fake")
-4. Select **"Read"** permission (default)
-5. Click **"Generate token"**
-6. Copy the token (starts with `hf_...`)
-7. **Completely FREE** - No credit card required!
-8. Free tier: Generous limits for personal projects (a few hundred requests/hour)
+1. Go to [replicate.com](https://replicate.com/) and sign up
+2. Go to [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)
+3. Click **"Create token"**
+4. Copy the token (starts with `r8_...`)
+5. Add to billing (optional): Get $5 free trial for 14 days
+6. **Super cheap**: ~$0.002 per image = $0.04/month for 20 images!
+7. **Perfect for your use case**: img2img uses your original image as reference
 
 ## About Sharp
 
@@ -116,44 +114,47 @@ This project uses [Sharp](https://sharp.pixelplumbing.com/) for high-performance
 - **GitHub**: [github.com/lovell/sharp](https://github.com/lovell/sharp)
 - **API Reference**: [sharp.pixelplumbing.com/api-constructor](https://sharp.pixelplumbing.com/api-constructor)
 
-## 🤖 About Hugging Face & Stable Diffusion
+## 🤖 About Replicate & Stable Diffusion img2img
 
-This project uses [Hugging Face](https://huggingface.co/) Inference API with **Stable Diffusion** for AI image generation - completely **FREE**!
+This project uses [Replicate](https://replicate.com/) with **Stable Diffusion XL img2img** for AI image generation - **super affordable** and **uses your original image as reference**!
 
-### Why Hugging Face?
+### Why Replicate?
 
-- **💯 100% Free** - No credit card required, generous free tier
-- **🚀 Fast** - Runs on Hugging Face's GPU infrastructure
+- **💰 Super Cheap** - Only ~$0.002 per image ($0.04/month for 20 images!)
+- **🎯 img2img Support** - Uses your original image as reference (perfect for "spot the fake")
+- **🚀 Fast** - Runs on high-performance GPUs in the cloud
 - **🎨 High Quality** - Uses Stable Diffusion XL for photorealistic results
-- **🔓 No Limits** - Perfect for low-volume usage (1-20 images/day)
-- **🌍 Open Source** - Built on open-source AI models
+- **📊 Transparent Pricing** - Pay only for what you use, no hidden fees
 
 ### How It Works
 
-1. **Text-to-Image Generation**: Since we're using the free tier, we generate new nature scenes using text prompts
-2. **Scene Variety**: The script cycles through different scene types (forest, mountain, beach, lake, sunset, desert)
-3. **Photorealistic Output**: Stable Diffusion XL creates high-quality, realistic images
+1. **Image-to-Image Generation**: Sends your original image + prompt to Replicate
+2. **Reference-Based**: Uses the original as a reference (80% similar, 20% AI-generated)
+3. **Subtle Differences**: Perfect for "spot the fake" game - images are very similar but not identical
 4. **Post-Processing**: Sharp resizes and optimizes the generated images
 
-### Models Available
+### Cost Breakdown
 
-The default model is `stabilityai/stable-diffusion-xl-base-1.0`, but you can use others:
+For your use case (20 images/month):
+- **Per image**: ~$0.002
+- **Per month**: ~$0.04
+- **$5 credit lasts**: ~2,500 images = 125 months!
 
-- **Stable Diffusion XL** (default): Best quality, photorealistic
-- **Stable Diffusion v1-5**: Faster, lighter weight
-- Check [Hugging Face Models](https://huggingface.co/models?pipeline_tag=text-to-image) for more options
+Compare to OpenAI DALL-E 3: $1.20/month (30x more expensive!)
 
-### Rate Limits
+### Model Used
 
-- **Free tier**: A few hundred requests per hour
-- **Perfect for**: 1-20 images per day (your use case!)
-- **No monthly cap**: Unlike paid APIs, you won't run out of credits
+- **stability-ai/sdxl**: Stable Diffusion XL with img2img support
+- **prompt_strength: 0.8**: 80% of the original image preserved, 20% AI-generated differences
+- **50 inference steps**: High-quality output
+- **1024×576 resolution**: Perfect 16:9 aspect ratio
 
 ### Documentation
 
-- **Hugging Face Hub**: [huggingface.co](https://huggingface.co/)
-- **Inference API Docs**: [huggingface.co/docs/api-inference](https://huggingface.co/docs/api-inference)
-- **Stable Diffusion**: [huggingface.co/stabilityai/stable-diffusion-xl-base-1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)
+- **Replicate Platform**: [replicate.com](https://replicate.com/)
+- **SDXL Model**: [replicate.com/stability-ai/sdxl](https://replicate.com/stability-ai/sdxl)
+- **Pricing**: [replicate.com/pricing](https://replicate.com/pricing)
+- **API Docs**: [replicate.com/docs](https://replicate.com/docs)
 
 ## 📁 Project Structure
 
@@ -166,7 +167,7 @@ spot-the-fake_auto/
 │   ├── services/
 │   │   ├── unsplash.js       # Unsplash API integration
 │   │   ├── iloveimg.js       # Image processing (Sharp)
-│   │   └── huggingface.js    # AI fake generation (Stable Diffusion)
+│   │   └── replicate.js      # AI fake generation (Stable Diffusion img2img)
 │   └── utils/
 │       └── helpers.js        # Utility functions
 ├── temp/                     # (gitignored) Temporary files
@@ -179,31 +180,31 @@ spot-the-fake_auto/
 
 ## 🎯 How Image Generation Works
 
-Since we're using Stable Diffusion (text-to-image), the script generates new nature scenes that look realistic but are clearly AI-generated:
+This project uses **img2img** (image-to-image) generation, which means:
 
-**Scene Types** (rotates through variety):
-- Forest landscapes with trees and foliage
-- Mountain scenes with peaks and valleys
-- Beach scenes with ocean and sand
-- Lake views with reflections
-- Sunset/golden hour landscapes
-- Desert environments
-- General natural landscapes
+1. **Original as Reference**: Sends your Unsplash photo to Replicate
+2. **Prompt + Image**: Combines the image with a prompt asking for a near-replica
+3. **Subtle Changes**: The AI creates a very similar image with minor AI-generated differences
+4. **Perfect for Game**: Players must spot the subtle differences between real and AI
+
+**The Magic Prompt**:
+> "Create a pixel-perfect replica of the reference image. Match the original framing, composition, perspective, and proportions exactly. Precisely mimic the lighting direction, intensity, and color temperature..."
 
 **Generation Parameters**:
 - **Size**: 1024×576 (16:9 aspect ratio)
 - **Quality**: 50 inference steps for photorealism
 - **Guidance**: 7.5 scale for prompt adherence
+- **Prompt Strength**: 0.8 (80% original, 20% AI changes)
 - **Negative prompt**: Filters out cartoons, illustrations, CGI artifacts
 
 ## 🔧 Customization
 
 ### Change the AI generation
 
-Edit `src/services/huggingface.js` and modify:
+Edit `src/services/replicate.js` and modify:
 - `FAKE_GENERATION_PROMPT`: The main prompt for image generation
-- `scenePrompts`: The different scene types (forest, mountain, beach, etc.)
-- Or set `HUGGINGFACE_MODEL` in `.env` to use a different Stable Diffusion model
+- `prompt_strength`: How much to transform the image (0.8 = 80% original, 20% new)
+- Try different Replicate models (see [replicate.com/collections/text-to-image](https://replicate.com/collections/text-to-image))
 
 ### Adjust image processing
 
@@ -218,17 +219,17 @@ Create a new service in `src/services/` following the pattern of `unsplash.js`.
 ### "Missing required environment variables"
 → Make sure you've copied `.env.example` to `.env` and filled in all values
 
-### "Hugging Face API error 429 (rate limit)"
-→ The free tier has rate limits. Wait a few minutes and try again, or reduce batch size
+### "Replicate API error 401 (unauthorized)"
+→ Check your `REPLICATE_API_KEY` in `.env` is correct and starts with `r8_`
 
-### "Hugging Face API error 401 (unauthorized)"
-→ Check your `HUGGINGFACE_API_KEY` in `.env` is correct and starts with `hf_`
+### "Replicate: Insufficient credits"
+→ Add credits at [replicate.com/account/billing](https://replicate.com/account/billing) - $5 lasts 2,500 images!
 
 ### "Sharp processing failed"
 → Ensure you have enough disk space and the input images are valid JPEG/PNG files
 
-### "Model loading error" from Hugging Face
-→ The model might be loading (cold start). Wait 30-60 seconds and try again
+### "Replicate model taking long time"
+→ First generation can take 10-30 seconds (model cold start). Subsequent ones are faster
 
 ## 📄 License
 

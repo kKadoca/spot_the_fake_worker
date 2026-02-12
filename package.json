@@ -1,7 +1,7 @@
 {
   "name": "spot-the-fake-auto",
   "version": "1.0.0",
-  "description": "Automated workflow for generating 'Spot the Fake' image pairs using Unsplash, Hugging Face (Stable Diffusion), and Sharp",
+  "description": "Automated workflow for generating 'Spot the Fake' image pairs using Unsplash, Replicate (Stable Diffusion img2img), and Sharp",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -15,16 +15,17 @@
     "automation",
     "images",
     "unsplash",
-    "huggingface",
+    "replicate",
     "stable-diffusion",
+    "img2img",
     "sharp"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@huggingface/inference": "^4.13.12",
     "axios": "^1.6.7",
     "dotenv": "^16.4.1",
+    "replicate": "^1.4.0",
     "sharp": "^0.34.5",
     "uuid": "^9.0.1"
   },

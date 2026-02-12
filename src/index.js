@@ -8,16 +8,16 @@
  * 2. Save to local raw folder
  * 3. Resize + Compress via Sharp
  * 4. Save to local to_replicate and ready folders
- * 5. Generate fake images with Hugging Face (Stable Diffusion)
+ * 5. Generate fake images with Replicate (Stable Diffusion img2img)
  * 6. Process fakes via Sharp
  * 7. Save fakes to local ready folder
  */
 
-import { config, validateConfig } from './config/index.js'
-import unsplash from './services/unsplash.js'
+import { config, validateConfig } from "./config/index.js";
+import unsplash from "./services/unsplash.js";
 // import gdrive from './services/gdrive.js' // No longer needed - using local storage
-import iloveimg from './services/iloveimg.js'
-import huggingface from './services/huggingface.js'
+import iloveimg from "./services/iloveimg.js";
+import replicate from "./services/replicate.js";
 import {
   generateBatchId,
   generateSequentialIds,
@@ -27,40 +27,40 @@ import {
   ensureStorageDirs,
   copyToStorage,
   logger,
-} from './utils/helpers.js'
-import { join } from 'path'
+} from "./utils/helpers.js";
+import { join } from "path";
 
 /**
  * Parse command line arguments
  */
 function parseArgs() {
-  const args = process.argv.slice(2)
+  const args = process.argv.slice(2);
   const options = {
     step: null, // Run specific step: fetch, process, generate, or null for all
     count: config.workflow.batchSize,
     cleanup: true,
-  }
+  };
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
-      case '--step':
-        options.step = args[++i]
-        break
-      case '--count':
-      case '-n':
-        options.count = parseInt(args[++i], 10)
-        break
-      case '--no-cleanup':
-        options.cleanup = false
-        break
-      case '--help':
-      case '-h':
-        printHelp()
-        process.exit(0)
+      case "--step":
+        options.step = args[++i];
+        break;
+      case "--count":
+      case "-n":
+        options.count = parseInt(args[++i], 10);
+        break;
+      case "--no-cleanup":
+        options.cleanup = false;
+        break;
+      case "--help":
+      case "-h":
+        printHelp();
+        process.exit(0);
     }
   }
 
-  return options
+  return options;
 }
 
 function printHelp() {
@@ -85,113 +85,113 @@ Examples:
   npm start --count 3          # Process 3 images
   npm start --step fetch       # Only fetch images
   npm run fetch                # Shortcut for fetch step
-`)
+`);
 }
 
 /**
  * Step 1 & 2: Fetch images from Unsplash and save to Raw folder
  */
 async function stepFetch(count, tempDir, batchId) {
-  logger.step(1, 'Fetching images from Unsplash...')
+  logger.step(1, "Fetching images from Unsplash...");
 
   // Generate IDs for this batch
-  const ids = generateSequentialIds(count, batchId)
+  const ids = generateSequentialIds(count, batchId);
 
   // Fetch image metadata
-  const images = await unsplash.fetchImages(count)
+  const images = await unsplash.fetchImages(count);
 
   // Create temp directory for downloads
-  const downloadDir = await createTempSubdir('raw')
+  const downloadDir = await createTempSubdir("raw");
 
   // Download images
-  const downloaded = await unsplash.downloadImages(images, downloadDir, ids)
+  const downloaded = await unsplash.downloadImages(images, downloadDir, ids);
 
   // Save to local Raw folder
-  logger.step(2, 'Saving to local raw folder...')
+  logger.step(2, "Saving to local raw folder...");
   for (const image of downloaded) {
-    await copyToStorage(image.localPath, config.paths.raw, image.filename)
+    await copyToStorage(image.localPath, config.paths.raw, image.filename);
   }
 
-  logger.success(`Fetched and saved ${downloaded.length} images`)
-  return downloaded
+  logger.success(`Fetched and saved ${downloaded.length} images`);
+  return downloaded;
 }
 
 /**
  * Step 3 & 4: Process images with iLoveIMG and upload to folders
  */
 async function stepProcess(images) {
-  logger.step(3, 'Processing images with iLoveIMG...')
+  logger.step(3, "Processing images with iLoveIMG...");
 
   // Create temp directory for processed images
-  const processedDir = await createTempSubdir('processed')
+  const processedDir = await createTempSubdir("processed");
 
   // Prepare processing tasks
   const processingTasks = images.map(img => ({
     id: img.id,
     inputPath: img.localPath,
     outputPath: join(processedDir, `original_${img.id}.jpeg`),
-  }))
+  }));
 
   // Process all images (resize + compress)
-  const processed = await iloveimg.processImages(processingTasks)
+  const processed = await iloveimg.processImages(processingTasks);
 
   // Save to local To_Replicate and Ready folders
-  logger.step(4, 'Saving processed originals to local folders...')
+  logger.step(4, "Saving processed originals to local folders...");
 
   for (const img of processed) {
-    const filename = `original_${img.id}.jpeg`
+    const filename = `original_${img.id}.jpeg`;
     // Save to to_replicate folder (for AI reference)
-    await copyToStorage(img.processedPath, config.paths.toReplicate, filename)
+    await copyToStorage(img.processedPath, config.paths.toReplicate, filename);
     // Save to ready folder (game-ready)
-    await copyToStorage(img.processedPath, config.paths.ready, filename)
+    await copyToStorage(img.processedPath, config.paths.ready, filename);
   }
 
-  logger.success(`Processed and saved ${processed.length} originals`)
-  return processed
+  logger.success(`Processed and saved ${processed.length} originals`);
+  return processed;
 }
 
 /**
  * Step 5, 6 & 7: Generate fakes, process, and upload
  */
 async function stepGenerate(originals) {
-  logger.step(5, 'Generating fake images with OpenAI...')
+  logger.step(5, "Generating fake images with HuggingFace...");
 
   // Create temp directory for fakes
-  const fakesRawDir = await createTempSubdir('fakes_raw')
-  const fakesProcessedDir = await createTempSubdir('fakes_processed')
+  const fakesRawDir = await createTempSubdir("fakes_raw");
+  const fakesProcessedDir = await createTempSubdir("fakes_processed");
 
   // Generate fakes
-  const fakes = await huggingface.generateFakeImages(originals, fakesRawDir)
+  const fakes = await replicate.generateFakeImages(originals, fakesRawDir);
 
   // Filter successful generations
-  const successfulFakes = fakes.filter(f => f.success)
+  const successfulFakes = fakes.filter(f => f.success);
 
   if (successfulFakes.length === 0) {
-    logger.warn('No fake images were generated successfully')
-    return []
+    logger.warn("No fake images were generated successfully");
+    return [];
   }
 
   // Process fakes with iLoveIMG
-  logger.step(6, 'Processing fake images with iLoveIMG...')
+  logger.step(6, "Processing fake images with iLoveIMG...");
 
   const fakeProcessingTasks = successfulFakes.map(fake => ({
     id: fake.id,
     inputPath: fake.fakePath,
     outputPath: join(fakesProcessedDir, `fake_${fake.id}.jpeg`),
-  }))
+  }));
 
-  const processedFakes = await iloveimg.processImages(fakeProcessingTasks)
+  const processedFakes = await iloveimg.processImages(fakeProcessingTasks);
 
   // Save fakes to local Ready folder
-  logger.step(7, 'Saving fakes to local ready folder...')
+  logger.step(7, "Saving fakes to local ready folder...");
 
   for (const fake of processedFakes) {
-    const filename = `fake_${fake.id}.jpeg`
-    await copyToStorage(fake.processedPath, config.paths.ready, filename)
+    const filename = `fake_${fake.id}.jpeg`;
+    await copyToStorage(fake.processedPath, config.paths.ready, filename);
   }
 
-  logger.success(`Generated and saved ${processedFakes.length} fakes`)
-  return processedFakes
+  logger.success(`Generated and saved ${processedFakes.length} fakes`);
+  return processedFakes;
 }
 
 /**
@@ -202,72 +202,74 @@ async function main() {
 ╔═══════════════════════════════════════════════════════════╗
 ║           SPOT THE FAKE - Automated Pipeline              ║
 ╚═══════════════════════════════════════════════════════════╝
-`)
+`);
 
-  const options = parseArgs()
+  const options = parseArgs();
 
   try {
     // Validate configuration
-    logger.info('Validating configuration...')
-    validateConfig()
-    logger.success('Configuration valid')
+    logger.info("Validating configuration...");
+    validateConfig();
+    logger.success("Configuration valid");
 
     // Setup
-    const batchId = generateBatchId()
-    const tempDir = await ensureTempDir()
-    const storageDirs = await ensureStorageDirs()
-    logger.info(`Batch ID: ${batchId}`)
-    logger.info(`Temp directory: ${tempDir}`)
-    logger.info(`Storage directories ready: raw, to_replicate, ready`)
-    logger.info(`Processing ${options.count} images`)
+    const batchId = generateBatchId();
+    const tempDir = await ensureTempDir();
+    const storageDirs = await ensureStorageDirs();
+    logger.info(`Batch ID: ${batchId}`);
+    logger.info(`Temp directory: ${tempDir}`);
+    logger.info(`Storage directories ready: raw, to_replicate, ready`);
+    logger.info(`Processing ${options.count} images`);
 
-    let images = []
-    let processedImages = []
+    let images = [];
+    let processedImages = [];
 
     // Run steps based on options
-    if (!options.step || options.step === 'fetch') {
-      images = await stepFetch(options.count, tempDir, batchId)
+    if (!options.step || options.step === "fetch") {
+      images = await stepFetch(options.count, tempDir, batchId);
 
-      if (options.step === 'fetch') {
-        logger.success('Fetch step completed')
-        return
+      if (options.step === "fetch") {
+        logger.success("Fetch step completed");
+        return;
       }
     }
 
-    if (!options.step || options.step === 'process') {
+    if (!options.step || options.step === "process") {
       // If running process step alone, we need to load images from temp
-      if (options.step === 'process' && images.length === 0) {
-        logger.error('No images to process. Run fetch step first.')
-        process.exit(1)
+      if (options.step === "process" && images.length === 0) {
+        logger.error("No images to process. Run fetch step first.");
+        process.exit(1);
       }
 
-      processedImages = await stepProcess(images)
+      processedImages = await stepProcess(images);
 
-      if (options.step === 'process') {
-        logger.success('Process step completed')
-        return
+      if (options.step === "process") {
+        logger.success("Process step completed");
+        return;
       }
     }
 
-    if (!options.step || options.step === 'generate') {
+    if (!options.step || options.step === "generate") {
       // Prepare originals for fake generation
       const originalsForFakes = processedImages.map(img => ({
         id: img.id,
         localPath: img.processedPath,
-      }))
+      }));
 
       if (originalsForFakes.length === 0) {
-        logger.error('No processed images for fake generation. Run previous steps first.')
-        process.exit(1)
+        logger.error(
+          "No processed images for fake generation. Run previous steps first.",
+        );
+        process.exit(1);
       }
 
-      await stepGenerate(originalsForFakes)
+      await stepGenerate(originalsForFakes);
     }
 
     // Cleanup
     if (options.cleanup) {
-      logger.info('Cleaning up temporary files...')
-      await cleanupTemp()
+      logger.info("Cleaning up temporary files...");
+      await cleanupTemp();
     }
 
     console.log(`
@@ -278,15 +280,14 @@ async function main() {
 ║  ✅ ${options.count} fake images generated and processed
 ║  ✅ All images saved to local storage                     ║
 ╚═══════════════════════════════════════════════════════════╝
-`)
-    logger.info(`Files saved to: ${config.paths.ready}`)
-
+`);
+    logger.info(`Files saved to: ${config.paths.ready}`);
   } catch (error) {
-    logger.error(`Pipeline failed: ${error.message}`)
-    console.error(error)
-    process.exit(1)
+    logger.error(`Pipeline failed: ${error.message}`);
+    console.error(error);
+    process.exit(1);
   }
 }
 
 // Run
-main()
+main();

@@ -1,4 +1,4 @@
-import { mkdir, rm, readdir } from 'fs/promises';
+import { mkdir, rm, readdir, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,17 +27,52 @@ export function generateSequentialIds(count, batchId = generateBatchId()) {
 }
 
 /**
- * Ensure temp directory exists and is clean
+ * Ensure temp directory exists
+ * Note: Storage directories (raw, to_replicate, ready) are preserved
  */
 export async function ensureTempDir() {
   const tempDir = config.paths.temp;
-  
+
+  // Only clean up temporary processing subdirectories, not storage directories
   if (existsSync(tempDir)) {
-    await rm(tempDir, { recursive: true });
+    const subdirs = await readdir(tempDir);
+    const tempSubdirs = subdirs.filter(dir =>
+      !['raw', 'to_replicate', 'ready'].includes(dir)
+    );
+
+    for (const subdir of tempSubdirs) {
+      const subdirPath = join(tempDir, subdir);
+      await rm(subdirPath, { recursive: true, force: true });
+    }
+  } else {
+    await mkdir(tempDir, { recursive: true });
   }
-  
-  await mkdir(tempDir, { recursive: true });
+
   return tempDir;
+}
+
+/**
+ * Ensure storage directories exist (raw, to_replicate, ready)
+ * These persist between runs and don't get cleaned up
+ */
+export async function ensureStorageDirs() {
+  const dirs = [
+    config.paths.raw,
+    config.paths.toReplicate,
+    config.paths.ready,
+  ];
+
+  for (const dir of dirs) {
+    if (!existsSync(dir)) {
+      await mkdir(dir, { recursive: true });
+    }
+  }
+
+  return {
+    raw: config.paths.raw,
+    toReplicate: config.paths.toReplicate,
+    ready: config.paths.ready,
+  };
 }
 
 /**
@@ -105,6 +140,19 @@ export function formatBytes(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Copy file to a storage directory
+ * @param {string} sourcePath - Source file path
+ * @param {string} destDir - Destination directory (raw, toReplicate, or ready)
+ * @param {string} filename - Filename for the destination
+ */
+export async function copyToStorage(sourcePath, destDir, filename) {
+  const destPath = join(destDir, filename);
+  await copyFile(sourcePath, destPath);
+  logger.info(`  Saved to ${destDir.split('/').pop()}: ${filename}`);
+  return destPath;
 }
 
 /**

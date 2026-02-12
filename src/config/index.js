@@ -59,6 +59,10 @@ export const config = {
     root: ROOT_DIR,
     temp: join(ROOT_DIR, 'temp'),
     credentials: join(ROOT_DIR, 'credentials'),
+    // Storage directories (persistent)
+    raw: join(ROOT_DIR, 'temp', 'raw'),
+    toReplicate: join(ROOT_DIR, 'temp', 'to_replicate'),
+    ready: join(ROOT_DIR, 'temp', 'ready'),
   },
 }
 

@@ -2,20 +2,20 @@
 
 /**
  * Spot the Fake - Automated Image Pipeline
- * 
+ *
  * This script orchestrates the full workflow:
  * 1. Fetch nature images from Unsplash
- * 2. Save to Google Drive (Raw folder)
+ * 2. Save to local raw folder
  * 3. Resize + Compress via iLoveIMG
- * 4. Save to To_Replicate and Ready folders
+ * 4. Save to local to_replicate and ready folders
  * 5. Generate fake images with OpenAI
  * 6. Process fakes via iLoveIMG
- * 7. Save fakes to Ready folder
+ * 7. Save fakes to local ready folder
  */
 
 import { config, validateConfig } from './config/index.js'
 import unsplash from './services/unsplash.js'
-import gdrive from './services/gdrive.js'
+// import gdrive from './services/gdrive.js' // No longer needed - using local storage
 import iloveimg from './services/iloveimg.js'
 import openai from './services/openai.js'
 import {
@@ -24,6 +24,8 @@ import {
   ensureTempDir,
   createTempSubdir,
   cleanupTemp,
+  ensureStorageDirs,
+  copyToStorage,
   logger,
 } from './utils/helpers.js'
 import { join } from 'path'
@@ -104,15 +106,13 @@ async function stepFetch(count, tempDir, batchId) {
   // Download images
   const downloaded = await unsplash.downloadImages(images, downloadDir, ids)
 
-  // Upload to Raw folder in Google Drive
-  // logger.step(2, 'Uploading to Google Drive Raw folder...')
-  logger.step(2, 'Skipped')
-  // for (const image of downloaded) {
-  //   await gdrive.uploadToRaw(image.localPath, image.filename)
-  // }
+  // Save to local Raw folder
+  logger.step(2, 'Saving to local raw folder...')
+  for (const image of downloaded) {
+    await copyToStorage(image.localPath, config.paths.raw, image.filename)
+  }
 
-  // logger.success(`Fetched and uploaded ${downloaded.length} images`)
-  logger.success(`Fetched ${downloaded.length} images`)
+  logger.success(`Fetched and saved ${downloaded.length} images`)
   return downloaded
 }
 
@@ -135,19 +135,18 @@ async function stepProcess(images) {
   // Process all images (resize + compress)
   const processed = await iloveimg.processImages(processingTasks)
 
-  // Upload to To_Replicate and Ready folders
-  // logger.step(4, 'Uploading processed originals to Google Drive...')
-  logger.step(4, 'Skipped')
+  // Save to local To_Replicate and Ready folders
+  logger.step(4, 'Saving processed originals to local folders...')
 
-  // const uploadTasks = processed.map(img => ({
-  //   id: img.id,
-  //   localPath: img.processedPath,
-  // }))
+  for (const img of processed) {
+    const filename = `original_${img.id}.jpeg`
+    // Save to to_replicate folder (for AI reference)
+    await copyToStorage(img.processedPath, config.paths.toReplicate, filename)
+    // Save to ready folder (game-ready)
+    await copyToStorage(img.processedPath, config.paths.ready, filename)
+  }
 
-  // await gdrive.uploadOriginals(uploadTasks)
-
-  // logger.success(`Processed and uploaded ${processed.length} originals`)
-  logger.success(`Processed ${processed.length} originals`)
+  logger.success(`Processed and saved ${processed.length} originals`)
   return processed
 }
 
@@ -183,18 +182,15 @@ async function stepGenerate(originals) {
 
   const processedFakes = await iloveimg.processImages(fakeProcessingTasks)
 
-  // Upload fakes to Ready folder
-  // logger.step(7, 'Uploading fakes to Google Drive Ready folder...')
-  logger.step(7, 'Skipped')
-  // const fakeUploadTasks = processedFakes.map(fake => ({
-  //   id: fake.id,
-  //   localPath: fake.processedPath,
-  // }))
+  // Save fakes to local Ready folder
+  logger.step(7, 'Saving fakes to local ready folder...')
 
-  // await gdrive.uploadFakes(fakeUploadTasks)
+  for (const fake of processedFakes) {
+    const filename = `fake_${fake.id}.jpeg`
+    await copyToStorage(fake.processedPath, config.paths.ready, filename)
+  }
 
-  // logger.success(`Generated and uploaded ${processedFakes.length} fakes`)
-  logger.success(`Generated ${processedFakes.length} fakes`)
+  logger.success(`Generated and saved ${processedFakes.length} fakes`)
   return processedFakes
 }
 
@@ -219,8 +215,10 @@ async function main() {
     // Setup
     const batchId = generateBatchId()
     const tempDir = await ensureTempDir()
+    const storageDirs = await ensureStorageDirs()
     logger.info(`Batch ID: ${batchId}`)
     logger.info(`Temp directory: ${tempDir}`)
+    logger.info(`Storage directories ready: raw, to_replicate, ready`)
     logger.info(`Processing ${options.count} images`)
 
     let images = []
@@ -278,9 +276,10 @@ async function main() {
 ║                                                           ║
 ║  ✅ ${options.count} original images fetched and processed
 ║  ✅ ${options.count} fake images generated and processed
-║  ✅ All images uploaded to Google Drive                   ║
+║  ✅ All images saved to local storage                     ║
 ╚═══════════════════════════════════════════════════════════╝
 `)
+    logger.info(`Files saved to: ${config.paths.ready}`)
 
   } catch (error) {
     logger.error(`Pipeline failed: ${error.message}`)

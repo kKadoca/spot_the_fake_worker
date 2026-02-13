@@ -107,12 +107,11 @@ async function stepFetch(count, tempDir, batchId) {
   const downloaded = await unsplash.downloadImages(images, downloadDir, ids);
 
   // Save to local Raw folder
-  logger.step(2, "Saving to local raw folder...");
   for (const image of downloaded) {
     await copyToStorage(image.localPath, config.paths.raw, image.filename);
   }
 
-  logger.success(`Fetched and saved ${downloaded.length} images`);
+  logger.success(`Fetched ${downloaded.length} images`);
   return downloaded;
 }
 
@@ -120,7 +119,7 @@ async function stepFetch(count, tempDir, batchId) {
  * Step 3 & 4: Process images with sharp and upload to folders
  */
 async function stepProcess(images) {
-  logger.step(3, "Processing images with sharp...");
+  logger.step(2, "Processing images with sharp...");
 
   // Create temp directory for processed images
   const processedDir = await createTempSubdir("processed");
@@ -136,8 +135,6 @@ async function stepProcess(images) {
   const processed = await sharp.processImages(processingTasks);
 
   // Save to local To_Replicate and Ready folders
-  logger.step(4, "Saving processed originals to local folders...");
-
   for (const img of processed) {
     const filename = `original_${img.id}.jpeg`;
     // Save to to_replicate folder (for AI reference)
@@ -146,7 +143,7 @@ async function stepProcess(images) {
     await copyToStorage(img.processedPath, config.paths.ready, filename);
   }
 
-  logger.success(`Processed and saved ${processed.length} originals`);
+  logger.success(`Processed ${processed.length} originals`);
   return processed;
 }
 
@@ -154,7 +151,7 @@ async function stepProcess(images) {
  * Step 5, 6 & 7: Generate fakes, process, and upload
  */
 async function stepGenerate(originals) {
-  logger.step(5, "Generating fake images with Replicate...");
+  logger.step(3, "Generating fake images with Replicate...");
 
   // Create temp directory for fakes
   const fakesRawDir = await createTempSubdir("fakes_raw");
@@ -169,10 +166,12 @@ async function stepGenerate(originals) {
   if (successfulFakes.length === 0) {
     logger.warn("No fake images were generated successfully");
     return [];
+  } else {
+    logger.success(`Generated ${processedFakes.length} fakes`);
   }
 
   // Process fakes with sharp
-  logger.step(6, "Processing fake images with sharp...");
+  logger.step(4, "Processing fake images with sharp...");
 
   const fakeProcessingTasks = successfulFakes.map(fake => ({
     id: fake.id,
@@ -181,16 +180,14 @@ async function stepGenerate(originals) {
   }));
 
   const processedFakes = await sharp.processImages(fakeProcessingTasks);
+  logger.success(`Processed ${processedFakes.length} fakes`);
 
   // Save fakes to local Ready folder
-  logger.step(7, "Saving fakes to local ready folder...");
-
   for (const fake of processedFakes) {
     const filename = `fake_${fake.id}.jpeg`;
     await copyToStorage(fake.processedPath, config.paths.ready, filename);
   }
 
-  logger.success(`Generated and saved ${processedFakes.length} fakes`);
   return processedFakes;
 }
 
@@ -218,7 +215,6 @@ async function main() {
     const storageDirs = await ensureStorageDirs();
     logger.info(`Batch ID: ${batchId}`);
     logger.info(`Temp directory: ${tempDir}`);
-    logger.info(`Storage directories ready: raw, to_replicate, ready`);
     logger.info(`Processing ${options.count} images`);
 
     let images = [];
@@ -281,7 +277,7 @@ async function main() {
 ║  ✅ All images saved to local storage                     ║
 ╚═══════════════════════════════════════════════════════════╝
 `);
-    logger.info(`Files saved to: ${config.paths.ready}`);
+    logger.success(`Files saved to: ${config.paths.ready}`);
   } catch (error) {
     logger.error(`Pipeline failed: ${error.message}`);
     console.error(error);

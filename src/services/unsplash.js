@@ -19,8 +19,6 @@ const unsplashApi = axios.create({
  * @returns {Promise<Array>} Array of image metadata
  */
 export async function fetchImages(count = config.workflow.batchSize) {
-  logger.info(`Fetching ${count} images from Unsplash...`);
-
   const images = [];
 
   // Unsplash random endpoint returns max 30 at once
@@ -51,7 +49,7 @@ export async function fetchImages(count = config.workflow.batchSize) {
       height: image.height,
     });
 
-    logger.info(`  Fetched image ${i + 1}/${count}: ${image.id}`);
+    logger.info(`  Fetched image ${i + 1}/${count}`);
 
     // Rate limiting: Unsplash allows 50 requests/hour on free tier
     // Small delay between requests to be safe
@@ -76,9 +74,7 @@ export async function downloadImage(url, outputPath) {
     url: url,
     responseType: "arraybuffer",
     params: {
-      // Request specific dimensions from Unsplash
-      w: config.workflow.resize.width,
-      q: 90, // High quality
+      q: 85, // High quality
       fm: "jpg", // JPEG format
     },
   });
@@ -96,8 +92,6 @@ export async function downloadImage(url, outputPath) {
  * @returns {Promise<Array>} Array of {id, localPath, ...metadata}
  */
 export async function downloadImages(images, outputDir, ids) {
-  logger.info(`Downloading ${images.length} images...`);
-
   const results = [];
 
   for (let i = 0; i < images.length; i++) {
@@ -117,7 +111,7 @@ export async function downloadImages(images, outputDir, ids) {
       filename,
     });
 
-    logger.info(`  Downloaded ${i + 1}/${images.length}: ${filename}`);
+    logger.info(`  Downloaded ${i + 1}/${images.length}`);
   }
 
   return results;

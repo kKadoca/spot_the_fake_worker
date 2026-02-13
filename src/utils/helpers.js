@@ -101,11 +101,10 @@ export async function cleanupTemp() {
       const itemPath = join(tempDir, item.name);
       try {
         await rm(itemPath, { recursive: true, force: true });
-        logger.info(`  ✅ Cleaned up: ${item.name}`);
       } catch (error) {
         // Ignore Windows permission errors (file in use by antivirus, etc.)
         if (error.code === "EPERM" || error.code === "EBUSY") {
-          logger.warn(`  ⚠️  Could not delete ${item.name}: ${error.message}`);
+          logger.warn(`⚠️  Could not delete ${item.name}: ${error.message}`);
         } else {
           throw error;
         }
@@ -174,7 +173,7 @@ export function formatBytes(bytes) {
 export async function copyToStorage(sourcePath, destDir, filename) {
   const destPath = join(destDir, filename);
   await copyFile(sourcePath, destPath);
-  logger.info(`  Saved to ${destDir.split("/").pop()}: ${filename}`);
+  // logger.info(`  Saved to ${destDir.split("/").pop()}: ${filename}`);
   return destPath;
 }
 

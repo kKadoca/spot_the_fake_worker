@@ -61,10 +61,7 @@ export async function generateFakeImage(
 ) {
   return retryWithBackoff(
     async () => {
-      logger.info(`    Converting image to data URI...`);
       const imageDataUri = await imageToDataUri(originalImagePath);
-
-      logger.info(`    Sending to Replicate (this may take 10-30 seconds)...`);
 
       // Use Stable Diffusion XL with img2img
       // Model: stability-ai/sdxl
@@ -103,7 +100,7 @@ export async function generateFakeImage(
       // Output is an array of URLs
       const imageUrl = Array.isArray(output) ? output[0] : output;
 
-      logger.info(`    Downloading generated image...`);
+      logger.info(`  Downloading generated image...`);
       await downloadImage(imageUrl, outputPath);
 
       return outputPath;
@@ -121,8 +118,6 @@ export async function generateFakeImage(
  * @returns {Promise<Array>} Array of {id, originalPath, fakePath}
  */
 export async function generateFakeImages(originals, outputDir) {
-  logger.info(`Generating ${originals.length} fake images with Replicate...`);
-
   const results = [];
 
   for (let i = 0; i < originals.length; i++) {
@@ -131,7 +126,7 @@ export async function generateFakeImages(originals, outputDir) {
     const fakePath = join(outputDir, fakeFilename);
 
     logger.info(
-      `  Generating fake ${i + 1}/${originals.length}: ${original.id}`,
+      `  Generating fake ${i + 1}/${originals.length}: ${original.id}...`,
     );
 
     try {
@@ -144,10 +139,10 @@ export async function generateFakeImages(originals, outputDir) {
         success: true,
       });
 
-      logger.success(`    Generated fake for ${original.id}`);
+      logger.success(`Generated fake for ${original.id}`);
     } catch (error) {
       logger.error(
-        `    Failed to generate fake for ${original.id}: ${error.message}`,
+        `Failed to generate fake for ${original.id}: ${error.message}`,
       );
 
       results.push({
@@ -161,7 +156,7 @@ export async function generateFakeImages(originals, outputDir) {
 
     // Rate limiting between generations (be nice to the API)
     if (i < originals.length - 1) {
-      logger.info(`    Waiting 10 seconds before next generation...`);
+      logger.info(`  Waiting 10 seconds before next generation...`);
       await new Promise(resolve => setTimeout(resolve, 10000));
     }
   }

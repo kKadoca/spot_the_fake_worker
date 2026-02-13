@@ -16,7 +16,7 @@
 import { config, validateConfig } from "./config/index.js";
 import unsplash from "./services/unsplash.js";
 // import gdrive from './services/gdrive.js' // No longer needed - using local storage
-import iloveimg from "./services/iloveimg.js";
+import sharp from "./services/sharp.js";
 import replicate from "./services/replicate.js";
 import {
   generateBatchId,
@@ -117,10 +117,10 @@ async function stepFetch(count, tempDir, batchId) {
 }
 
 /**
- * Step 3 & 4: Process images with iLoveIMG and upload to folders
+ * Step 3 & 4: Process images with sharp and upload to folders
  */
 async function stepProcess(images) {
-  logger.step(3, "Processing images with iLoveIMG...");
+  logger.step(3, "Processing images with sharp...");
 
   // Create temp directory for processed images
   const processedDir = await createTempSubdir("processed");
@@ -133,7 +133,7 @@ async function stepProcess(images) {
   }));
 
   // Process all images (resize + compress)
-  const processed = await iloveimg.processImages(processingTasks);
+  const processed = await sharp.processImages(processingTasks);
 
   // Save to local To_Replicate and Ready folders
   logger.step(4, "Saving processed originals to local folders...");
@@ -154,7 +154,7 @@ async function stepProcess(images) {
  * Step 5, 6 & 7: Generate fakes, process, and upload
  */
 async function stepGenerate(originals) {
-  logger.step(5, "Generating fake images with HuggingFace...");
+  logger.step(5, "Generating fake images with Replicate...");
 
   // Create temp directory for fakes
   const fakesRawDir = await createTempSubdir("fakes_raw");
@@ -171,8 +171,8 @@ async function stepGenerate(originals) {
     return [];
   }
 
-  // Process fakes with iLoveIMG
-  logger.step(6, "Processing fake images with iLoveIMG...");
+  // Process fakes with sharp
+  logger.step(6, "Processing fake images with sharp...");
 
   const fakeProcessingTasks = successfulFakes.map(fake => ({
     id: fake.id,
@@ -180,7 +180,7 @@ async function stepGenerate(originals) {
     outputPath: join(fakesProcessedDir, `fake_${fake.id}.jpeg`),
   }));
 
-  const processedFakes = await iloveimg.processImages(fakeProcessingTasks);
+  const processedFakes = await sharp.processImages(fakeProcessingTasks);
 
   // Save fakes to local Ready folder
   logger.step(7, "Saving fakes to local ready folder...");

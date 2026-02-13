@@ -1,8 +1,8 @@
-import axios from 'axios';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
-import config from '../config/index.js';
-import { logger, retryWithBackoff } from '../utils/helpers.js';
+import axios from "axios";
+import { writeFile } from "fs/promises";
+import { join } from "path";
+import config from "../config/index.js";
+import { logger, retryWithBackoff } from "../utils/helpers.js";
 
 const unsplashApi = axios.create({
   baseURL: config.unsplash.baseUrl,
@@ -14,7 +14,7 @@ const unsplashApi = axios.create({
 /**
  * Fetch random nature/landscape images from Unsplash
  * Filters: horizontal orientation, nature, no people
- * 
+ *
  * @param {number} count - Number of images to fetch
  * @returns {Promise<Array>} Array of image metadata
  */
@@ -27,11 +27,11 @@ export async function fetchImages(count = config.workflow.batchSize) {
   // We fetch one by one to ensure quality and uniqueness
   for (let i = 0; i < count; i++) {
     const image = await retryWithBackoff(async () => {
-      const response = await unsplashApi.get('/photos/random', {
+      const response = await unsplashApi.get("/photos/random", {
         params: {
-          query: 'nature landscape scenery',
-          orientation: 'landscape',
-          content_filter: 'high', // Safe content only
+          query: "nature landscape scenery no-text",
+          orientation: "landscape",
+          content_filter: "high", // Safe content only
         },
       });
 
@@ -43,7 +43,8 @@ export async function fetchImages(count = config.workflow.batchSize) {
       unsplashId: image.id,
       downloadUrl: image.urls.raw, // Highest quality
       regularUrl: image.urls.regular,
-      description: image.description || image.alt_description || 'Nature landscape',
+      description:
+        image.description || image.alt_description || "Nature landscape",
       author: image.user.name,
       authorUrl: image.user.links.html,
       width: image.width,
@@ -64,21 +65,21 @@ export async function fetchImages(count = config.workflow.batchSize) {
 
 /**
  * Download an image to local filesystem
- * 
+ *
  * @param {string} url - Image URL
  * @param {string} outputPath - Local path to save
  * @returns {Promise<string>} Path to downloaded file
  */
 export async function downloadImage(url, outputPath) {
   const response = await axios({
-    method: 'GET',
+    method: "GET",
     url: url,
-    responseType: 'arraybuffer',
+    responseType: "arraybuffer",
     params: {
       // Request specific dimensions from Unsplash
       w: config.workflow.resize.width,
       q: 90, // High quality
-      fm: 'jpg', // JPEG format
+      fm: "jpg", // JPEG format
     },
   });
 
@@ -88,7 +89,7 @@ export async function downloadImage(url, outputPath) {
 
 /**
  * Download multiple images to a directory
- * 
+ *
  * @param {Array} images - Array of image metadata from fetchImages
  * @param {string} outputDir - Directory to save images
  * @param {Array} ids - Array of IDs to use for filenames

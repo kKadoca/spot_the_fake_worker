@@ -82,14 +82,37 @@ export async function createTempSubdir(name) {
 }
 
 /**
- * Clean up temp directory
+ * Clean up temp directory (keeps only the 'ready' folder)
  */
 export async function cleanupTemp() {
   const tempDir = config.paths.temp;
 
-  if (existsSync(tempDir)) {
-    await rm(tempDir, { recursive: true });
+  if (!existsSync(tempDir)) {
+    return;
   }
+
+  // Get all items in temp directory
+  const items = await readdir(tempDir, { withFileTypes: true });
+
+  // Delete everything except 'ready' folder
+  const deletionPromises = items
+    .filter(item => item.name !== "ready" && item.name !== "raw")
+    .map(async item => {
+      const itemPath = join(tempDir, item.name);
+      try {
+        await rm(itemPath, { recursive: true, force: true });
+        logger.info(`  ✅ Cleaned up: ${item.name}`);
+      } catch (error) {
+        // Ignore Windows permission errors (file in use by antivirus, etc.)
+        if (error.code === "EPERM" || error.code === "EBUSY") {
+          logger.warn(`  ⚠️  Could not delete ${item.name}: ${error.message}`);
+        } else {
+          throw error;
+        }
+      }
+    });
+
+  await Promise.all(deletionPromises);
 }
 
 /**

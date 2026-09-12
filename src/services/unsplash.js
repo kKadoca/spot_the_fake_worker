@@ -29,7 +29,7 @@ export async function fetchImages(count = config.workflow.batchSize) {
     const image = await retryWithBackoff(async () => {
       const response = await unsplashApi.get("/photos/random", {
         params: {
-          query: "nature landscape scenery no-text",
+          query: "simple nature landscape no-people",
           orientation: "landscape",
           content_filter: "high", // Safe content only
         },
@@ -76,8 +76,6 @@ export async function downloadImage(url, outputPath) {
     url: url,
     responseType: "arraybuffer",
     params: {
-      // Request specific dimensions from Unsplash
-      w: config.workflow.resize.width,
       q: 90, // High quality
       fm: "jpg", // JPEG format
     },
